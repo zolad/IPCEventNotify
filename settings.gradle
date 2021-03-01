@@ -1,4 +1,0 @@
-include ':app2'
-include ':libipceventnotify'
-include ':app'
-rootProject.name = "Android-IPCEventNotify"

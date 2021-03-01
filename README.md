@@ -1,6 +1,6 @@
 # IPCEventNotify
 
-A IPC Event Notify Library for Android app,base on linux named pipe,use shared memory 一个安卓APP跨进程通信库,基于linux管道，实现共享内存管理(已实现)，和共享内存IPC传输（待实现）
+A IPC Event Notify Library for Android app,base on linux named pipe,use shared memory 一个安卓APP跨进程通信库,基于linux管道，可发送自定义消息对象，实现共享内存管理(已实现)，和共享内存IPC传输（待实现）
 
 Usage
 ==============

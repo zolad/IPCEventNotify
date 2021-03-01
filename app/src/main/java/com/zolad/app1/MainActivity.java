@@ -39,7 +39,7 @@ public class MainActivity extends Activity {
       //  setSupportActionBar(toolbar);
 
         notify = IPCEventNotify.getInstance(this);
-        notify.init("/data/bctc","Demo1");
+        notify.init("/sdcard/ipcdir","Demo1");
         findViewById(R.id.button_first).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

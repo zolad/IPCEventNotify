@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         notify = IPCEventNotify.getInstance(this);
-        notify.init("/data/bctc","Demo2");
+        notify.init("/sdcard/ipcdir","Demo2");
         findViewById(R.id.button_first).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

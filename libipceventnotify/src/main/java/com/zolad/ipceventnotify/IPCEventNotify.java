@@ -1,6 +1,7 @@
 package com.zolad.ipceventnotify;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
 import android.os.SharedMemory;
@@ -22,9 +23,12 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static com.zolad.ipceventnotify.util.Constants.EVENTTYPE_ADDITION;
 import static com.zolad.ipceventnotify.util.Constants.EVENTTYPE_FREEDATA;
@@ -57,6 +61,10 @@ public class IPCEventNotify {
     private static String mIndicationName;
     private ShareMemoryManager mShareMemoryManager;
     private static  final int INITAIL_SHAREMEMORY_SIZE = 1024*1024;
+    private  static final int COREPoolSIZE = 2;
+    private  static final int MAXINUMPOOLSIZE = 4;
+    private  static final int KEEPALIVETIME = 2000;
+    private  static final int MAXINUMTASKQUEUE = 15;
 
 
     private IPCEventNotify(Context context) {
@@ -185,6 +193,7 @@ public class IPCEventNotify {
                     byte[] eventData = ParcelUtil.marshall(sendParcel);
                     SharedMemory sharedMemory = getShareMemoryManager().writeData(eventData,availBuffer);
 
+
                     ParcelFileDescriptor shmfd = getShareMemoryManager().getFileDescriper();
                     if(sharedMemory != null && shmfd!=null){
                         IPCTransData ipcTransData = new IPCTransData(EVENTTYPE_ADDITION,
@@ -215,7 +224,6 @@ public class IPCEventNotify {
         return nativeSendIPCEvent(mNativePtr,observer,
                data ,sendParcelDataSize);
     }
-
 
 
 
@@ -303,7 +311,29 @@ public class IPCEventNotify {
         return sendParcel;
     }
 
-    public Parcel getShmFileParcel(int shmFd,int shmDataOffset,int shmDataSize){
+    public SharedMemory getSharememory(){
+        if(mShareMemoryManager!=null)
+        return mShareMemoryManager.getShareMemory();
+        else
+            return null;
+
+    }
+
+    public Parcel getShmFileParcel(SharedMemory sharedMemory,int shmDataOffset,int shmDataSize){
+
+        if(sharedMemory!=null) {
+            byte[] data = ShareMemoryManager.readShareMemory(sharedMemory, shmDataOffset, shmDataSize);
+            if(data!=null) {
+                Parcel obj = ParcelUtil.unmarshall(data);
+                if (obj != null)
+                    return obj;
+            }
+        }
+
+        return null;
+    }
+
+    private Parcel getShmFileParcel(int shmFd,int shmDataOffset,int shmDataSize){
         ParcelFileDescriptor fileDescriptor = null;
         try {
             fileDescriptor = ParcelFileDescriptor.adoptFd(shmFd);
@@ -372,7 +402,9 @@ public class IPCEventNotify {
     private void handleIPCTransData(final byte [] msgdata){
 
         if( mThreadExecutor == null)
-            mThreadExecutor = Executors.newFixedThreadPool(THREAD_MAX);
+            mThreadExecutor = new ThreadPoolExecutor(COREPoolSIZE,MAXINUMPOOLSIZE,KEEPALIVETIME,
+                    TimeUnit.MILLISECONDS, new ArrayBlockingQueue<Runnable>(MAXINUMTASKQUEUE),
+                    new ThreadPoolExecutor.DiscardPolicy());
 
 
         mThreadExecutor.execute(new Runnable() {
